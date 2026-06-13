@@ -1,0 +1,197 @@
+"""
+Highlight Agent — generates actual highlight video clips from detected events.
+Merges nearby events into a single clip with pre/post buffer for context.
+"""
+
+import os
+import json
+from collections import defaultdict
+
+
+# Seconds before and after the detected event to include in the clip
+PRE_BUFFER_SEC = 3.0
+POST_BUFFER_SEC = 4.0
+
+# Minimum gap between events to merge them into one clip (seconds)
+MERGE_GAP_SEC = 6.0
+
+
+def _cluster_events(events: list, gap_sec: float = MERGE_GAP_SEC) -> list:
+    """
+    Cluster nearby highlight events into single clip windows.
+    Returns list of {start_sec, end_sec, events: [...]} clusters.
+    """
+    highlights = sorted(
+        [e for e in events if e.get("is_highlight")],
+        key=lambda x: x["timestamp_sec"]
+    )
+
+    if not highlights:
+        return []
+
+    clusters = []
+    current_start = highlights[0]["timestamp_sec"] - PRE_BUFFER_SEC
+    current_end = highlights[0]["timestamp_sec"] + POST_BUFFER_SEC
+    current_events = [highlights[0]]
+
+    for event in highlights[1:]:
+        t = event["timestamp_sec"]
+        if t - current_end <= gap_sec:
+            # Extend current cluster
+            current_end = max(current_end, t + POST_BUFFER_SEC)
+            current_events.append(event)
+        else:
+            clusters.append({
+                "start_sec": max(0, current_start),
+                "end_sec": current_end,
+                "events": current_events,
+                "primary_event": max(
+                    current_events,
+                    key=lambda x: x["confidence"]
+                )["event"]
+            })
+            current_start = t - PRE_BUFFER_SEC
+            current_end = t + POST_BUFFER_SEC
+            current_events = [event]
+
+    clusters.append({
+        "start_sec": max(0, current_start),
+        "end_sec": current_end,
+        "events": current_events,
+        "primary_event": max(
+            current_events,
+            key=lambda x: x["confidence"]
+        )["event"]
+    })
+
+    return clusters
+
+
+def generate_highlight_clips(
+    video_path: str,
+    events: list,
+    output_folder: str = "outputs/highlights",
+    duration_sec: float = None,
+) -> list:
+    """
+    Generate individual highlight video clips using moviepy.
+    Returns list of clip metadata dicts.
+    """
+    try:
+        from moviepy import VideoFileClip
+    except ImportError:
+        print("[HighlightAgent] moviepy not available. Skipping clip generation.")
+        return []
+
+    os.makedirs(output_folder, exist_ok=True)
+
+    clusters = _cluster_events(events)
+    if not clusters:
+        print("[HighlightAgent] No highlight events found to clip.")
+        return []
+
+    print(f"[HighlightAgent] Generating {len(clusters)} highlight clips...")
+
+    try:
+        full_video = VideoFileClip(video_path)
+        video_duration = full_video.duration
+    except Exception as e:
+        print(f"[HighlightAgent] Could not open video: {e}")
+        return []
+
+    clips_metadata = []
+
+    for idx, cluster in enumerate(clusters):
+        start = max(0, cluster["start_sec"])
+        end = min(video_duration, cluster["end_sec"])
+
+        if end <= start:
+            continue
+
+        clip_name = f"highlight_{idx + 1}_{cluster['primary_event'].replace(' ', '_').replace('!', '')}.mp4"
+        clip_path = os.path.join(output_folder, clip_name)
+
+        try:
+            clip = full_video.subclipped(start, end)
+            clip.write_videofile(
+                clip_path,
+                codec="libx264",
+                audio_codec="aac",
+                logger=None,
+                temp_audiofile=f"outputs/highlights/temp_audio_{idx}.m4a"
+            )
+            clip.close()
+
+            clips_metadata.append({
+                "clip_file": clip_name,
+                "start_sec": round(start, 2),
+                "end_sec": round(end, 2),
+                "duration_sec": round(end - start, 2),
+                "primary_event": cluster["primary_event"],
+                "events_in_clip": [
+                    {
+                        "event": e["event"],
+                        "timestamp_sec": e["timestamp_sec"],
+                        "confidence": e["confidence"],
+                    }
+                    for e in cluster["events"]
+                ],
+            })
+            print(f"[HighlightAgent] Clip {idx + 1}: {clip_name} ({start:.1f}s - {end:.1f}s)")
+
+        except Exception as e:
+            print(f"[HighlightAgent] Failed to generate clip {idx + 1}: {e}")
+
+    full_video.close()
+
+    # Save clips metadata
+    clips_json_path = "outputs/events/highlights.json"
+    with open(clips_json_path, "w") as f:
+        json.dump(clips_metadata, f, indent=2)
+
+    print(f"[HighlightAgent] Generated {len(clips_metadata)} clips")
+    return clips_metadata
+
+
+def generate_highlight_reel(
+    clips_metadata: list,
+    output_path: str = "outputs/highlights/highlight_reel.mp4",
+) -> str | None:
+    """
+    Concatenate all highlight clips into a single highlight reel.
+    """
+    if not clips_metadata:
+        return None
+
+    try:
+        from moviepy import VideoFileClip, concatenate_videoclips
+    except ImportError:
+        print("[HighlightAgent] moviepy not available.")
+        return None
+
+    clip_files = [
+        os.path.join("outputs/highlights", c["clip_file"])
+        for c in clips_metadata
+        if os.path.exists(os.path.join("outputs/highlights", c["clip_file"]))
+    ]
+
+    if not clip_files:
+        return None
+
+    try:
+        clips = [VideoFileClip(f) for f in clip_files]
+        reel = concatenate_videoclips(clips, method="compose")
+        reel.write_videofile(
+            output_path,
+            codec="libx264",
+            audio_codec="aac",
+            logger=None
+        )
+        for c in clips:
+            c.close()
+        reel.close()
+        print(f"[HighlightAgent] Highlight reel saved to {output_path}")
+        return output_path
+    except Exception as e:
+        print(f"[HighlightAgent] Reel generation failed: {e}")
+        return None
