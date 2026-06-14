@@ -1,0 +1,255 @@
+import os
+import imageio_ffmpeg
+
+# ------------------------------------
+# Fix FFmpeg path for Windows
+# ------------------------------------
+
+os.environ["PATH"] += (
+
+    os.pathsep
+
+    +
+
+    os.path.dirname(
+
+        imageio_ffmpeg
+        .get_ffmpeg_exe()
+    )
+)
+
+# ------------------------------------
+# Whisper
+# ------------------------------------
+
+import whisper
+
+
+# lightweight model
+model = whisper.load_model(
+    "base"
+)
+
+
+# ------------------------------------
+# Sport Keyword Maps
+# ------------------------------------
+
+CRICKET_KEYWORDS = {
+
+    "six": [
+
+        "six",
+        "maximum",
+
+        "goes all the way",
+
+        "big hit",
+
+        "huge shot",
+
+        "into the crowd"
+    ],
+
+    "wicket": [
+
+        "out",
+
+        "gone",
+
+        "wicket",
+
+        "bowled",
+
+        "caught",
+
+        "he's gone",
+
+        "appeal",
+
+        "cleaned him up"
+    ],
+
+    "boundary": [
+
+        "four",
+
+        "boundary",
+
+        "beautiful shot",
+
+        "driven away",
+
+        "through the covers"
+    ]
+}
+
+
+FOOTBALL_KEYWORDS = {
+
+    "goal": [
+        "goal"
+    ],
+
+    "penalty": [
+        "penalty"
+    ],
+
+    "yellow_card": [
+        "yellow card"
+    ],
+
+    "red_card": [
+        "red card"
+    ]
+}
+
+
+BASKETBALL_KEYWORDS = {
+
+    "dunk": [
+        "dunk"
+    ],
+
+    "three_pointer": [
+        "three pointer",
+        "three"
+    ],
+
+    "free_throw": [
+        "free throw"
+    ]
+}
+
+
+BADMINTON_KEYWORDS = {
+
+    "smash": [
+        "smash"
+    ],
+
+    "match_point": [
+        "match point"
+    ],
+
+    "rally": [
+        "rally"
+    ]
+}
+
+
+# ------------------------------------
+# Commentary Intelligence
+# ------------------------------------
+
+def detect_commentary_events(
+
+    audio_path,
+    sport
+
+):
+
+    try:
+
+        # ----------------------------
+        # No audio available
+        # ----------------------------
+
+        if audio_path is None:
+
+            return []
+
+        # ----------------------------
+        # Whisper transcription
+        # ----------------------------
+
+        result = model.transcribe(
+
+            audio_path,
+
+            fp16=False
+        )
+
+        text = (
+
+            result["text"]
+
+            .lower()
+
+            .strip()
+        )
+
+        print(
+            "Commentary Transcript:",
+            text
+        )
+
+        detected = []
+
+        # ----------------------------
+        # Select sport keywords
+        # ----------------------------
+
+        if "cricket" in sport:
+
+            keywords = (
+                CRICKET_KEYWORDS
+            )
+
+        elif "football" in sport:
+
+            keywords = (
+                FOOTBALL_KEYWORDS
+            )
+
+        elif "basketball" in sport:
+
+            keywords = (
+                BASKETBALL_KEYWORDS
+            )
+
+        elif "badminton" in sport:
+
+            keywords = (
+                BADMINTON_KEYWORDS
+            )
+
+        else:
+
+            return []
+
+        # ----------------------------
+        # Keyword matching
+        # ----------------------------
+
+        for event, words in (
+
+            keywords.items()
+
+        ):
+
+            for word in words:
+
+                if word in text:
+
+                    detected.append(
+                        event
+                    )
+
+                    break
+
+        print(
+            "Commentary Events:",
+            detected
+        )
+
+        return detected
+
+    except Exception as e:
+
+        print(
+            "Commentary Error:",
+            str(e)
+        )
+
+        return []
