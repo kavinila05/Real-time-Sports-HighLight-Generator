@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sports Highlights Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="nav-brand">⚡ Sports Highlights AI</div>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Upload New</a>
+    <a href="/dashboard" class="nav-link active">Dashboard</a>
+    <a href="#" class="nav-link" onclick="openEventsJson()">Events JSON</a>
+    <a href="#" class="nav-link" onclick="openSummaryJson()">Summary JSON</a>
+  </div>
+</nav>
+
+<main class="dash-page" id="dashPage">
+
+  <!-- ── MATCH OVERVIEW ──────────────────────────────── -->
+  <!-- Audio Spikes and Commentary intentionally excluded here;
+       they have their own dedicated sections below. -->
+  <section class="section">
+    <h2 class="section-title">🏅 MATCH OVERVIEW</h2>
+    <div class="stats-grid" id="statsGrid">
+      <!-- Sport · Duration · Highlights · Total Events · FPS · Resolution -->
+    </div>
+
+    <!-- Per-event-type breakdown (e.g. WICKET: 4, SIX: 2 …) -->
+    <div class="stats-grid" id="breakdownGrid" style="margin-top:12px"></div>
+
+    <!-- One-line AI summary sentence -->
+    <div class="summary-bar" id="summaryBar"></div>
+  </section>
+
+  <!-- ── TWO-COLUMN: Timeline + Top Moments ─────────── -->
+  <div class="two-col">
+
+    <!-- EVENT TIMELINE -->
+    <section class="section col-left">
+      <h2 class="section-title">📋 EVENT TIMELINE</h2>
+      <div class="timeline-scroll" id="timeline"></div>
+    </section>
+
+    <!-- TOP MOMENTS -->
+    <section class="section col-right">
+      <h2 class="section-title">⭐ TOP MOMENTS</h2>
+      <div class="moments-list" id="momentsList"></div>
+    </section>
+
+  </div>
+
+  <!-- ── HIGHLIGHT GALLERY ───────────────────────────── -->
+  <section class="section">
+    <h2 class="section-title">🎬 HIGHLIGHT GALLERY</h2>
+    <p class="section-hint">Thumbnails extracted at each highlight moment. Click any tile to play the clip.</p>
+    <div class="gallery-grid" id="galleryGrid"></div>
+  </section>
+
+  <!-- ── THUMBNAIL STRIP ─────────────────────────────── -->
+  <!-- Pure image section — one static JPEG per highlight.
+       No play button. Click any image to open full-size lightbox. -->
+  <section class="section">
+    <h2 class="section-title">🖼 HIGHLIGHT THUMBNAILS</h2>
+    <p class="section-hint">
+      One frame captured at the exact moment of each detected highlight.
+      Each image has the event label and timestamp burned in.
+      Click any thumbnail to view full size.
+    </p>
+    <div class="thumb-strip" id="thumbnailStrip"></div>
+  </section>
+
+  <!-- ── AUDIO SPIKES CHART ──────────────────────────── -->
+  <section class="section">
+    <h2 class="section-title">📈 CROWD ENERGY SPIKES</h2>
+    <p class="section-hint">
+      Each bar represents a moment where the crowd audio energy spiked above average —
+      indicating an exciting play. Height = relative energy level.
+    </p>
+    <div class="chart-wrap">
+      <canvas id="spikesChart" height="120"></canvas>
+    </div>
+  </section>
+
+  <!-- ── Q&A COPILOT ─────────────────────────────────── -->
+  <section class="section">
+    <h2 class="section-title">🤖 MATCH Q&amp;A COPILOT</h2>
+    <p class="section-hint">Ask anything about this match — events, highlights, timestamps, scores.</p>
+    <div class="copilot-box">
+      <div class="copilot-messages" id="copilotMessages">
+        <div class="copilot-msg bot">
+          <span class="bot-avatar">🤖</span>
+          <span class="msg-text">Hi! I'm your Match Copilot. Ask me anything about this match.</span>
+        </div>
+      </div>
+      <div class="copilot-input-row">
+        <input class="copilot-input" id="copilotInput"
+               placeholder="e.g. How many wickets? What was the top moment? List all events."
+               onkeydown="if(event.key==='Enter') sendCopilot()"/>
+        <button class="btn-ask" onclick="sendCopilot()">Ask →</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── VIDEO MODAL ──────────────────────────────────── -->
+<div class="modal-overlay" id="videoModal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    <div class="modal-meta" id="modalMeta"></div>
+    <video class="modal-video" id="modalVideo" controls></video>
+  </div>
+</div>
+
+<!-- Chart.js CDN for crowd energy bar chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>
