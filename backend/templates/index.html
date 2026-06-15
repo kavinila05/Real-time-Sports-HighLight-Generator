@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Sports Highlights – Upload</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="nav-brand">⚡ Sports Highlights AI</div>
+  <div class="nav-links">
+    <a href="/" class="nav-link active">Upload</a>
+    <a href="/dashboard" class="nav-link" id="dashLink" style="display:none">Dashboard</a>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────── -->
+<main class="upload-page">
+  <div class="hero-text">
+    <h1 class="hero-title">⚡ <span class="grad">AI Sports Highlights</span></h1>
+    <p class="hero-sub">Upload a match video. Our multi-modal AI analyzes video frames,<br>audio, and crowd signals to auto-generate highlights, captions, and clips.</p>
+  </div>
+
+  <!-- Upload Card -->
+  <div class="upload-card">
+    <div class="upload-zone" id="dropZone">
+      <div class="upload-icon">🎬</div>
+      <h2 class="upload-heading">Upload Your Match Video</h2>
+      <p class="upload-hint">MP4, MOV, AVI · Any sport · Any length</p>
+      <label class="btn-choose" for="fileInput">📁 Choose Video File(s)</label>
+      <input type="file" id="fileInput" accept=".mp4,.avi,.mov" hidden/>
+      <p class="file-name" id="fileName">No files selected</p>
+    </div>
+
+    <!-- Progress (hidden until upload) -->
+    <div class="upload-progress" id="uploadProgress" style="display:none">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <p class="progress-stage" id="progressStage">Uploading…</p>
+    </div>
+
+    <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">🚀 Analyze Match</button>
+  </div>
+
+  <!-- Feature Pills -->
+  <div class="feature-grid">
+    <div class="feature-pill">👁️ CLIP Vision Model</div>
+    <div class="feature-pill">🎙 Audio &amp; Crowd Analysis</div>
+    <div class="feature-pill">✂️ Auto Highlight Clips</div>
+    <div class="feature-pill">💬 Smart Captions</div>
+    <div class="feature-pill">📊 Match Summary</div>
+    <div class="feature-pill">🤖 Q&amp;A Over Match</div>
+  </div>
+</main>
+
+<script src="/static/js/upload.js"></script>
+</body>
+</html>
